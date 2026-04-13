@@ -1,2 +1,2 @@
-export { PrismaClient, Prisma } from './generated/prisma-client';
-export type { Booking, Guest, Suite } from './generated/prisma-client';
+export { PrismaClient, Prisma } from "../src/generated/prisma-client";
+export type { Booking, Guest, Suite } from "../src/generated/prisma-client";

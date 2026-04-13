@@ -1,16 +1,12 @@
 "use client";
 
-import Image from 'next/image';
-import { Search, Filter, X, Plus } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAppDialog } from '@/components/providers/app-dialog-provider';
-import { MotionButton } from '@/components/ui/motion-button';
-import { MotionModal } from '@/components/ui/motion-modal';
-import {
-  createSuite,
-  fetchSuites,
-  patchSuiteStatus,
-} from '@/lib/api/suites';
+import Image from "next/image";
+import { Search, Filter, X, Plus } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAppDialog } from "@/components/providers/app-dialog-provider";
+import { MotionButton } from "@/components/ui/motion-button";
+import { MotionModal } from "@/components/ui/motion-modal";
+import { createSuite, fetchSuites, patchSuiteStatus } from "@/lib/api/suites";
 import {
   SUITE_STATUSES,
   getSuiteStatusBadgeClass,
@@ -19,27 +15,35 @@ import {
   isMaintenanceStatus,
   isSuiteStatus,
   type SuiteStatusValue,
-} from '@/lib/domain/suite-status';
+} from "@/lib/domain/suite-status";
 import {
   SUITE_CATEGORIES,
   getSuiteCategoryLabel,
-} from '@/lib/domain/suite-category';
-import { getSuiteImageFallbackUrl } from '@/lib/env/public-env';
-import type { SuiteDto } from '@/lib/types/suite';
+  isSuiteCategory,
+  type SuiteCategoryValue,
+} from "@/lib/domain/suite-category";
+import { getSuiteImageFallbackUrl } from "@/lib/env/public-env";
+import type { SuiteDto } from "@/lib/types/suite";
 
 export default function InventoryPage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [suites, setSuites] = useState<SuiteDto[]>([]);
   const [selectedSuite, setSelectedSuite] = useState<SuiteDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [addSaving, setAddSaving] = useState(false);
-  const [addName, setAddName] = useState('');
-  const [addRoom, setAddRoom] = useState('');
-  const [addDesc, setAddDesc] = useState('');
-  const [addPrice, setAddPrice] = useState('');
-  const [addCategory, setAddCategory] = useState<string>('SUITE');
-  const [addImageUrl, setAddImageUrl] = useState('');
+  const [addName, setAddName] = useState("");
+  const [addRoom, setAddRoom] = useState("");
+  const [addDesc, setAddDesc] = useState("");
+  const [addPrice, setAddPrice] = useState("");
+  const [addCategory, setAddCategory] = useState<string>("SUITE");
+  const [addImageUrl, setAddImageUrl] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<
+    "ALL" | SuiteCategoryValue
+  >("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | SuiteStatusValue>(
+    "ALL",
+  );
   const imageFallback = useMemo(() => getSuiteImageFallbackUrl(), []);
 
   const loadSuites = useCallback(async () => {
@@ -47,7 +51,7 @@ export default function InventoryPage() {
       const data = await fetchSuites();
       setSuites(data);
     } catch (error) {
-      console.error('Failed to fetch suites:', error);
+      console.error("Failed to fetch suites:", error);
     } finally {
       setIsLoading(false);
     }
@@ -58,13 +62,34 @@ export default function InventoryPage() {
   }, [loadSuites]);
 
   const q = searchQuery.toLowerCase();
-  const filteredSuites = suites.filter(
-    (suite) =>
+  const filteredSuites = suites.filter((suite) => {
+    const searchMatch =
       suite.name.toLowerCase().includes(q) ||
       suite.roomNumber.toLowerCase().includes(q) ||
       suite.status.toLowerCase().includes(q) ||
-      (suite.category ?? '').toLowerCase().includes(q),
-  );
+      (suite.category ?? "").toLowerCase().includes(q);
+    if (!searchMatch) return false;
+    if (categoryFilter !== "ALL") {
+      const suiteCategory = suite.category?.toUpperCase() ?? "SUITE";
+      if (suiteCategory !== categoryFilter) return false;
+    }
+    if (statusFilter !== "ALL" && suite.status !== statusFilter) return false;
+    return true;
+  });
+  const hasActiveFilter = categoryFilter !== "ALL" || statusFilter !== "ALL";
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<SuiteCategoryValue, number> = {
+      SUITE: 0,
+      PENTHOUSE: 0,
+      VILLA: 0,
+    };
+    for (const suite of suites) {
+      const category = (suite.category ?? "SUITE").toUpperCase();
+      if (isSuiteCategory(category)) counts[category]++;
+    }
+    return counts;
+  }, [suites]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<SuiteStatusValue, number> = {
@@ -93,14 +118,14 @@ export default function InventoryPage() {
       setSuites(data);
       setSelectedSuite(null);
       await alert({
-        title: 'อัปเดตแล้ว',
+        title: "อัปเดตแล้ว",
         message: `สถานะ ${selectedSuite.name} เป็น ${getSuiteStatusLabel(newStatus)}`,
       });
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error("Error updating status:", error);
       await alert({
-        title: 'ไม่สำเร็จ',
-        message: 'อัปเดตสถานะไม่สำเร็จ',
+        title: "ไม่สำเร็จ",
+        message: "อัปเดตสถานะไม่สำเร็จ",
       });
     }
   };
@@ -116,8 +141,8 @@ export default function InventoryPage() {
       price < 0
     ) {
       await alert({
-        title: 'ข้อมูลไม่ครบ',
-        message: 'กรุณากรอกชื่อ หมายเลขห้อง คำอธิบาย และราคาที่ถูกต้อง',
+        title: "ข้อมูลไม่ครบ",
+        message: "กรุณากรอกชื่อ หมายเลขห้อง คำอธิบาย และราคาที่ถูกต้อง",
       });
       return;
     }
@@ -130,21 +155,21 @@ export default function InventoryPage() {
         pricePerNight: price,
         category: addCategory,
         imageUrl: addImageUrl.trim() || undefined,
-        status: 'AVAILABLE',
+        status: "AVAILABLE",
       });
       setShowAdd(false);
-      setAddName('');
-      setAddRoom('');
-      setAddDesc('');
-      setAddPrice('');
-      setAddCategory('SUITE');
-      setAddImageUrl('');
+      setAddName("");
+      setAddRoom("");
+      setAddDesc("");
+      setAddPrice("");
+      setAddCategory("SUITE");
+      setAddImageUrl("");
       const data = await fetchSuites();
       setSuites(data);
     } catch (err) {
       await alert({
-        title: 'ไม่สำเร็จ',
-        message: err instanceof Error ? err.message : 'สร้างห้องไม่สำเร็จ',
+        title: "ไม่สำเร็จ",
+        message: err instanceof Error ? err.message : "สร้างห้องไม่สำเร็จ",
       });
     } finally {
       setAddSaving(false);
@@ -195,8 +220,8 @@ export default function InventoryPage() {
             type="button"
             onClick={() =>
               void alert({
-                title: 'ตัวกรอง',
-                message: 'ตัวเลือกกรองขั้นสูงจะเปิดใช้งานภายหลัง',
+                title: "ตัวกรอง",
+                message: "ตัวเลือกกรองขั้นสูงจะเปิดใช้งานภายหลัง",
               })
             }
             className="gap-2"
@@ -204,6 +229,92 @@ export default function InventoryPage() {
             <Filter className="w-4 h-4" />
             Filter
           </MotionButton>
+        </div>
+      </div>
+
+      <div className="bg-surface rounded-xl border border-outline-variant/20 p-4 md:p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-label text-xs uppercase tracking-widest text-on-surface-variant">
+            Quick filters
+          </p>
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryFilter("ALL");
+                setStatusFilter("ALL");
+              }}
+              className="text-xs font-label uppercase tracking-widest text-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        <div className="rounded-lg bg-surface-container-low p-3 space-y-2">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+            Category
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("ALL")}
+              className={`px-3 py-2 rounded-lg text-xs font-label border transition-colors ${
+                categoryFilter === "ALL"
+                  ? "bg-primary text-white border-primary"
+                  : "bg-surface text-on-surface border-outline-variant/40 hover:border-primary/50"
+              }`}
+            >
+              All ({suites.length})
+            </button>
+            {SUITE_CATEGORIES.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setCategoryFilter(category)}
+                className={`px-3 py-2 rounded-lg text-xs font-label border transition-colors ${
+                  categoryFilter === category
+                    ? "bg-primary text-white border-primary"
+                    : "bg-surface text-on-surface border-outline-variant/40 hover:border-primary/50"
+                }`}
+              >
+                {getSuiteCategoryLabel(category)} ({categoryCounts[category]})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-surface-container-low p-3 space-y-2">
+          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+            Status
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-3 py-2 rounded-lg text-xs font-label border transition-colors ${
+                statusFilter === "ALL"
+                  ? "bg-primary text-white border-primary"
+                  : "bg-surface text-on-surface border-outline-variant/40 hover:border-primary/50"
+              }`}
+            >
+              All
+            </button>
+            {SUITE_STATUSES.map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-2 rounded-lg text-xs font-label border transition-colors ${
+                  statusFilter === status
+                    ? "bg-primary text-white border-primary"
+                    : "bg-surface text-on-surface border-outline-variant/40 hover:border-primary/50"
+                }`}
+              >
+                {getSuiteStatusLabel(status)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -242,14 +353,14 @@ export default function InventoryPage() {
           </div>
         ) : filteredSuites.length === 0 ? (
           <div className="col-span-full text-center py-12 text-on-surface-variant font-body">
-            No suites found matching &quot;{searchQuery}&quot;.
+            No rooms found for current search/filter.
           </div>
         ) : (
           filteredSuites.map((suite) => (
             <div
               key={suite.id}
               className={`bg-surface rounded-xl border border-outline-variant/20 overflow-hidden shadow-sm group ${
-                isMaintenanceStatus(suite.status) ? 'opacity-75' : ''
+                isMaintenanceStatus(suite.status) ? "opacity-75" : ""
               }`}
             >
               <div className="h-48 relative overflow-hidden">
@@ -258,7 +369,7 @@ export default function InventoryPage() {
                   alt={suite.name}
                   fill
                   className={`object-cover group-hover:scale-105 transition-transform duration-500 ${
-                    isMaintenanceStatus(suite.status) ? 'grayscale' : ''
+                    isMaintenanceStatus(suite.status) ? "grayscale" : ""
                   }`}
                   referrerPolicy="no-referrer"
                 />
@@ -284,11 +395,11 @@ export default function InventoryPage() {
                   <span
                     className={`font-label text-sm font-medium ${
                       isMaintenanceStatus(suite.status)
-                        ? 'text-error'
-                        : 'text-on-surface'
+                        ? "text-error"
+                        : "text-on-surface"
                     }`}
                   >
-                    ${suite.pricePerNight}{' '}
+                    ${suite.pricePerNight}{" "}
                     <span className="text-[10px] text-outline uppercase">
                       / Night
                     </span>
@@ -312,117 +423,117 @@ export default function InventoryPage() {
         onBackdropClick={() => !addSaving && setShowAdd(false)}
         panelClassName="bg-surface w-full max-w-lg rounded-2xl shadow-2xl border border-outline-variant/20 overflow-hidden max-h-[90vh] overflow-y-auto"
       >
-            <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-              <h3 className="font-headline text-xl font-semibold text-on-surface">
-                New suite
-              </h3>
-              <button
-                type="button"
-                onClick={() => !addSaving && setShowAdd(false)}
-                className="text-on-surface-variant hover:text-on-surface"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={submitAddSuite} className="p-6 space-y-4">
-              <div>
-                <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
-                  Name
-                </label>
-                <input
-                  required
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
-                />
-              </div>
-              <div>
-                <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
-                  Room number
-                </label>
-                <input
-                  required
-                  value={addRoom}
-                  onChange={(e) => setAddRoom(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
-                />
-              </div>
-              <div>
-                <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
-                  Category (public catalog tab)
-                </label>
-                <select
-                  value={addCategory}
-                  onChange={(e) => setAddCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
-                >
-                  {SUITE_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {getSuiteCategoryLabel(c)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
-                  Description (shown to guests)
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={addDesc}
-                  onChange={(e) => setAddDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
-                />
-              </div>
-              <div>
-                <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
-                  Price / night (USD)
-                </label>
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={addPrice}
-                  onChange={(e) => setAddPrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
-                />
-              </div>
-              <div>
-                <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
-                  Image URL (optional)
-                </label>
-                <input
-                  type="url"
-                  value={addImageUrl}
-                  onChange={(e) => setAddImageUrl(e.target.value)}
-                  placeholder="https://…"
-                  className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <MotionButton
-                  variant="outline"
-                  size="md"
-                  type="button"
-                  onClick={() => setShowAdd(false)}
-                  disabled={addSaving}
-                  className="flex-1"
-                >
-                  Cancel
-                </MotionButton>
-                <MotionButton
-                  variant="primary"
-                  size="md"
-                  type="submit"
-                  disabled={addSaving}
-                  className="flex-1"
-                >
-                  {addSaving ? 'Saving…' : 'Create suite'}
-                </MotionButton>
-              </div>
-            </form>
+        <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+          <h3 className="font-headline text-xl font-semibold text-on-surface">
+            New suite
+          </h3>
+          <button
+            type="button"
+            onClick={() => !addSaving && setShowAdd(false)}
+            className="text-on-surface-variant hover:text-on-surface"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={submitAddSuite} className="p-6 space-y-4">
+          <div>
+            <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
+              Name
+            </label>
+            <input
+              required
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
+            />
+          </div>
+          <div>
+            <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
+              Room number
+            </label>
+            <input
+              required
+              value={addRoom}
+              onChange={(e) => setAddRoom(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
+            />
+          </div>
+          <div>
+            <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
+              Category (public catalog tab)
+            </label>
+            <select
+              value={addCategory}
+              onChange={(e) => setAddCategory(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
+            >
+              {SUITE_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {getSuiteCategoryLabel(c)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
+              Description (shown to guests)
+            </label>
+            <textarea
+              required
+              rows={3}
+              value={addDesc}
+              onChange={(e) => setAddDesc(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
+            />
+          </div>
+          <div>
+            <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
+              Price / night (USD)
+            </label>
+            <input
+              required
+              type="number"
+              min={0}
+              step="0.01"
+              value={addPrice}
+              onChange={(e) => setAddPrice(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
+            />
+          </div>
+          <div>
+            <label className="font-label text-xs font-bold uppercase text-on-surface-variant block mb-1">
+              Image URL (optional)
+            </label>
+            <input
+              type="url"
+              value={addImageUrl}
+              onChange={(e) => setAddImageUrl(e.target.value)}
+              placeholder="https://…"
+              className="w-full px-3 py-2 rounded-lg border border-outline-variant/30 bg-surface text-sm"
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <MotionButton
+              variant="outline"
+              size="md"
+              type="button"
+              onClick={() => setShowAdd(false)}
+              disabled={addSaving}
+              className="flex-1"
+            >
+              Cancel
+            </MotionButton>
+            <MotionButton
+              variant="primary"
+              size="md"
+              type="submit"
+              disabled={addSaving}
+              className="flex-1"
+            >
+              {addSaving ? "Saving…" : "Create suite"}
+            </MotionButton>
+          </div>
+        </form>
       </MotionModal>
 
       <MotionModal
@@ -455,7 +566,7 @@ export default function InventoryPage() {
                   </span>
                 </div>
                 <p className="font-body text-sm text-on-surface-variant">
-                  Current Status:{' '}
+                  Current Status:{" "}
                   <strong className="text-on-surface">
                     {suiteStatusDisplay(selectedSuite.status)}
                   </strong>

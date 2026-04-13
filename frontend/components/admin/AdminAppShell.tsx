@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -12,37 +12,42 @@ import {
   Bell,
   CalendarCheck,
   LogOut,
-} from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { EASE_SMOOTH } from '@/lib/motion/constants';
-import type { Session } from '@supabase/supabase-js';
-import { fetchAdminNotifications } from '@/lib/api/admin';
-import type { AdminNotificationsDto } from '@/lib/types/dashboard';
-import { getSupabaseBrowserClient, isSupabaseBrowserConfigured } from '@/lib/supabase/browser-client';
-import { useAppDialog } from '@/components/providers/app-dialog-provider';
+  Menu,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { EASE_SMOOTH } from "@/lib/motion/constants";
+import type { Session } from "@supabase/supabase-js";
+import { fetchAdminNotifications } from "@/lib/api/admin";
+import type { AdminNotificationsDto } from "@/lib/types/dashboard";
+import {
+  getSupabaseBrowserClient,
+  isSupabaseBrowserConfigured,
+} from "@/lib/supabase/browser-client";
+import { useAppDialog } from "@/components/providers/app-dialog-provider";
 import {
   clearAdminAuthHint,
   readAdminAuthHint,
   setAdminAuthHint,
-} from '@/lib/admin-session-hint';
+} from "@/lib/admin-session-hint";
 
-const NOTIF_READ_KEY = 'majestic_admin_notif_read_at';
+const NOTIF_READ_KEY = "majestic_admin_notif_read_at";
 
 function roleLabel(role: string): string {
   const u = role.toUpperCase();
-  if (u === 'ADMIN') return 'Admin';
-  if (u === 'MANAGER') return 'Manager';
-  if (u === 'STAFF') return 'Staff';
+  if (u === "ADMIN") return "Admin";
+  if (u === "MANAGER") return "Manager";
+  if (u === "STAFF") return "Staff";
   return role;
 }
 
 function formatTimeAgo(iso: string): string {
   const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '';
+  if (Number.isNaN(t)) return "";
   const diff = Date.now() - t;
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Just now';
+  if (m < 1) return "Just now";
   if (m < 60) return `${m} min ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
@@ -52,11 +57,13 @@ function formatTimeAgo(iso: string): string {
 
 function displayNameFromSession(session: Session | null): string | null {
   if (!session?.user) return null;
-  const meta = session.user.user_metadata as Record<string, unknown> | undefined;
+  const meta = session.user.user_metadata as
+    | Record<string, unknown>
+    | undefined;
   const full =
-    typeof meta?.full_name === 'string'
+    typeof meta?.full_name === "string"
       ? meta.full_name
-      : typeof meta?.name === 'string'
+      : typeof meta?.name === "string"
         ? meta.name
         : null;
   return full?.trim() || session.user.email || null;
@@ -76,12 +83,15 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
   /** Recent login in this tab — show shell + pages immediately while verify runs. */
   const [sessionHint] = useState(() => readAdminAuthHint());
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifData, setNotifData] = useState<AdminNotificationsDto | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notifData, setNotifData] = useState<AdminNotificationsDto | null>(
+    null,
+  );
 
   const loadNotifs = useCallback(async () => {
     try {
       const readAt =
-        typeof window !== 'undefined'
+        typeof window !== "undefined"
           ? localStorage.getItem(NOTIF_READ_KEY)
           : null;
       const data = await fetchAdminNotifications(readAt);
@@ -94,14 +104,14 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isSupabaseBrowserConfigured()) {
       clearAdminAuthHint();
-      routerRef.current.replace('/admin/login?reason=config');
+      routerRef.current.replace("/admin/login?reason=config");
       return;
     }
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       clearAdminAuthHint();
-      routerRef.current.replace('/admin/login?reason=config');
+      routerRef.current.replace("/admin/login?reason=config");
       return;
     }
 
@@ -111,7 +121,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       if (!s) {
         clearAdminAuthHint();
-        routerRef.current.replace('/admin/login');
+        routerRef.current.replace("/admin/login");
         return;
       }
       setSession(s);
@@ -127,7 +137,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
         clearAdminAuthHint();
         setSession(null);
         setAuthVerified(false);
-        routerRef.current.replace('/admin/login');
+        routerRef.current.replace("/admin/login");
         return;
       }
       setSession(s);
@@ -144,7 +154,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!authVerified) return;
     // Defer calling loadNotifs to the next microtask to avoid setState during render
-    Promise.resolve().then(() => { 
+    Promise.resolve().then(() => {
       loadNotifs();
     });
   }, [authVerified, loadNotifs]);
@@ -158,17 +168,17 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     const ok = await confirmDialog({
-      title: 'ออกจากระบบ',
-      message: 'ต้องการออกจากระบบแอดมินหรือไม่?',
-      confirmLabel: 'ออกจากระบบ',
-      cancelLabel: 'ยกเลิก',
-      variant: 'danger',
+      title: "ออกจากระบบ",
+      message: "ต้องการออกจากระบบแอดมินหรือไม่?",
+      confirmLabel: "ออกจากระบบ",
+      cancelLabel: "ยกเลิก",
+      variant: "danger",
     });
     if (!ok) return;
     const supabase = getSupabaseBrowserClient();
     clearAdminAuthHint();
     await supabase?.auth.signOut();
-    router.push('/admin/login');
+    router.push("/admin/login");
     router.refresh();
   };
 
@@ -179,18 +189,22 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
   };
 
   const navLinks = [
-    { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-    { href: '/admin/bookings', label: 'Bookings & payments', icon: CalendarCheck },
-    { href: '/admin/inventory', label: 'Inventory & Suites', icon: Package },
-    { href: '/admin/ledger', label: 'Ledger', icon: Receipt },
-    { href: '/admin/permissions', label: 'Permissions', icon: Shield },
+    { href: "/admin", label: "Overview", icon: LayoutDashboard },
+    {
+      href: "/admin/bookings",
+      label: "Bookings & payments",
+      icon: CalendarCheck,
+    },
+    { href: "/admin/inventory", label: "Inventory & Suites", icon: Package },
+    { href: "/admin/ledger", label: "Ledger", icon: Receipt },
+    { href: "/admin/permissions", label: "Permissions", icon: Shield },
   ];
 
   const profile = notifData?.profile;
-  const sessionEmail = session?.user?.email?.toLowerCase() ?? '';
+  const sessionEmail = session?.user?.email?.toLowerCase() ?? "";
   const profileMatchesStaff =
     profile != null &&
-    typeof profile.email === 'string' &&
+    typeof profile.email === "string" &&
     profile.email.toLowerCase() === sessionEmail &&
     sessionEmail.length > 0;
 
@@ -199,13 +213,13 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
     displayNameFromSession(session) ??
     session?.user?.email ??
     (profileMatchesStaff ? profile.name : null) ??
-    'Signed in';
+    "Signed in";
 
   const headerRole = profileMatchesStaff
     ? roleLabel(profile.role)
     : sessionEmail
-      ? 'Supabase'
-      : '—';
+      ? "Supabase"
+      : "—";
 
   const showFullScreenGate = !authVerified && !sessionHint;
 
@@ -224,13 +238,13 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-surface-container-low flex font-body">
-      <aside className="w-64 bg-deep-obsidian text-white fixed h-full flex flex-col z-20">
+      <aside className="hidden md:flex w-64 bg-deep-obsidian text-white fixed h-full flex-col z-20">
         <div className="p-6 border-b border-white/10">
           <Link
             href="/"
             className="font-headline text-lg font-bold tracking-widest uppercase block mb-1"
           >
-            MAJESTIC RESERVE
+            SUNSHINE HOTEL
           </Link>
           <span className="font-label text-[10px] text-primary-fixed uppercase tracking-widest">
             Management Portal
@@ -245,18 +259,18 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
               <motion.div
                 key={link.href}
                 whileTap={{ scale: 0.98 }}
-                transition={{ type: 'spring', stiffness: 480, damping: 32 }}
+                transition={{ type: "spring", stiffness: 480, damping: 32 }}
               >
                 <Link
                   href={link.href}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg font-label text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      ? "bg-white/10 text-white"
+                      : "text-white/70 hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   <Icon
-                    className={`w-5 h-5 ${isActive ? 'text-primary-fixed' : ''}`}
+                    className={`w-5 h-5 ${isActive ? "text-primary-fixed" : ""}`}
                   />
                   {link.label}
                 </Link>
@@ -269,11 +283,11 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 480, damping: 32 }}
+            transition={{ type: "spring", stiffness: 480, damping: 32 }}
             onClick={() =>
               void alert({
-                title: 'ตั้งค่าระบบ',
-                message: 'โมดูลตั้งค่าจะเปิดใช้งานในเวอร์ชันถัดไป',
+                title: "ตั้งค่าระบบ",
+                message: "โมดูลตั้งค่าจะเปิดใช้งานในเวอร์ชันถัดไป",
               })
             }
             className="flex items-center gap-3 text-white/70 hover:text-white font-label text-sm font-medium transition-colors w-full text-left rounded-lg px-2 py-1 -mx-2 hover:bg-white/5"
@@ -284,7 +298,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 480, damping: 32 }}
+            transition={{ type: "spring", stiffness: 480, damping: 32 }}
             onClick={() => void signOut()}
             className="flex items-center gap-3 text-white/70 hover:text-red-200 font-label text-sm font-medium transition-colors w-full text-left rounded-lg px-2 py-1 -mx-2 hover:bg-white/5"
           >
@@ -294,12 +308,72 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
-        <header className="h-20 bg-surface border-b border-outline-variant/20 flex items-center justify-between px-8 sticky top-0 z-10">
-          <h1 className="font-headline text-xl font-semibold text-on-surface">
-            {navLinks.find((link) => link.href === pathname)?.label ||
-              'Dashboard'}
-          </h1>
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-30 bg-black/50">
+          <div className="w-72 h-full bg-deep-obsidian text-white p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <span className="font-headline font-bold tracking-widest uppercase">
+                Sunshine Hotel
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/20"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <nav className="flex-1 space-y-1">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg font-label text-sm ${
+                      isActive ? "bg-white/10 text-white" : "text-white/80"
+                    }`}
+                  >
+                    <Icon
+                      className={`w-5 h-5 ${isActive ? "text-primary-fixed" : ""}`}
+                    />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileNavOpen(false);
+                void signOut();
+              }}
+              className="mt-3 flex items-center gap-3 text-white/80 rounded-lg px-4 py-3 bg-white/5"
+            >
+              <LogOut className="w-5 h-5" />
+              ออกจากระบบ
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+        <header className="h-20 bg-surface border-b border-outline-variant/20 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="md:hidden h-9 w-9 inline-flex items-center justify-center rounded-md border border-outline-variant/40"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+            <h1 className="font-headline text-xl font-semibold text-on-surface">
+              {navLinks.find((link) => link.href === pathname)?.label ||
+                "Dashboard"}
+            </h1>
+          </div>
           <div className="flex items-center gap-6">
             <div className="relative">
               <button
@@ -325,49 +399,49 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
                     transition={{ duration: 0.22, ease: EASE_SMOOTH }}
                     className="absolute right-0 mt-4 w-80 bg-surface rounded-xl shadow-xl border border-outline-variant/20 overflow-hidden z-50"
                   >
-                  <div className="p-4 border-b border-outline-variant/20 bg-surface-container-low flex justify-between items-center">
-                    <h4 className="font-label text-xs font-bold uppercase tracking-widest text-on-surface">
-                      Notifications
-                    </h4>
-                    {unreadCount > 0 && (
-                      <span className="text-[10px] font-bold text-error">
-                        {unreadCount} new
-                      </span>
-                    )}
-                  </div>
-                  <div className="max-h-72 overflow-y-auto">
-                    {!notifData?.items?.length ? (
-                      <p className="p-4 text-sm text-on-surface-variant">
-                        No recent activity.
-                      </p>
-                    ) : (
-                      notifData.items.map((item) => (
-                        <Link
-                          key={item.id}
-                          href="/admin/bookings"
-                          onClick={() => setShowNotifications(false)}
-                          className="block p-4 border-b border-outline-variant/10 hover:bg-surface-container-lowest transition-colors"
-                        >
-                          <p className="font-body text-sm text-on-surface mb-1">
-                            {item.message}
-                          </p>
-                          <span className="font-label text-[10px] text-on-surface-variant uppercase">
-                            {formatTimeAgo(item.createdAt)}
-                          </span>
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                  <div className="p-3 text-center bg-surface-container-lowest border-t border-outline-variant/10">
-                    <button
-                      type="button"
-                      onClick={markAllRead}
-                      className="font-label text-xs font-bold uppercase tracking-widest text-primary hover:underline"
-                    >
-                      Mark all as read
-                    </button>
-                  </div>
-                </motion.div>
+                    <div className="p-4 border-b border-outline-variant/20 bg-surface-container-low flex justify-between items-center">
+                      <h4 className="font-label text-xs font-bold uppercase tracking-widest text-on-surface">
+                        Notifications
+                      </h4>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-bold text-error">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {!notifData?.items?.length ? (
+                        <p className="p-4 text-sm text-on-surface-variant">
+                          No recent activity.
+                        </p>
+                      ) : (
+                        notifData.items.map((item) => (
+                          <Link
+                            key={item.id}
+                            href="/admin/bookings"
+                            onClick={() => setShowNotifications(false)}
+                            className="block p-4 border-b border-outline-variant/10 hover:bg-surface-container-lowest transition-colors"
+                          >
+                            <p className="font-body text-sm text-on-surface mb-1">
+                              {item.message}
+                            </p>
+                            <span className="font-label text-[10px] text-on-surface-variant uppercase">
+                              {formatTimeAgo(item.createdAt)}
+                            </span>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 text-center bg-surface-container-lowest border-t border-outline-variant/10">
+                      <button
+                        type="button"
+                        onClick={markAllRead}
+                        className="font-label text-xs font-bold uppercase tracking-widest text-primary hover:underline"
+                      >
+                        Mark all as read
+                      </button>
+                    </div>
+                  </motion.div>
                 ) : null}
               </AnimatePresence>
             </div>
@@ -388,7 +462,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-8 overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 10 }}

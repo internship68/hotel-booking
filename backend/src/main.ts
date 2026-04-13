@@ -1,13 +1,13 @@
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
-import 'reflect-metadata';
-import { resolveCorsOrigin } from './common/cors-origin';
-import { AppModule } from './app.module';
+import { ValidationPipe } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { NestFactory } from "@nestjs/core";
+import "reflect-metadata";
+import { resolveCorsOrigin } from "./common/cors-origin";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const config = app.get(ConfigService);
+  const config: ConfigService = app.get(ConfigService);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -16,10 +16,10 @@ async function bootstrap() {
     }),
   );
   app.enableCors({
-    origin: resolveCorsOrigin(config.get<string>('corsOrigin')),
+    origin: resolveCorsOrigin(config.get<string>("corsOrigin")),
     credentials: true,
   });
-  await app.listen(config.getOrThrow<number>('port'));
+  await app.listen(config.getOrThrow<number>("port"));
 }
 
 bootstrap();

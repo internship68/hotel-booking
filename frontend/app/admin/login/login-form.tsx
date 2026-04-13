@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'motion/react';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { setAdminAuthHint } from '@/lib/admin-session-hint';
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "motion/react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { setAdminAuthHint } from "@/lib/admin-session-hint";
 import {
   getSupabaseBrowserClient,
   isSupabaseBrowserConfigured,
-} from '@/lib/supabase/browser-client';
-import { MotionButton } from '@/components/ui/motion-button';
+} from "@/lib/supabase/browser-client";
+import { MotionButton } from "@/components/ui/motion-button";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
@@ -21,10 +21,10 @@ export function AdminLoginForm() {
     routerRef.current = router;
   }, [router]);
   const searchParams = useSearchParams();
-  const reason = searchParams.get('reason');
+  const reason = searchParams.get("reason");
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ export function AdminLoginForm() {
       if (cancelled) return;
       if (session) {
         setAdminAuthHint();
-        routerRef.current.replace('/admin');
+        routerRef.current.replace("/admin");
         return;
       }
       setCheckingSession(false);
@@ -58,12 +58,12 @@ export function AdminLoginForm() {
     e.preventDefault();
     setError(null);
     if (!isSupabaseBrowserConfigured()) {
-      setError('ยังไม่ได้ตั้งค่า Supabase');
+      setError("ยังไม่ได้ตั้งค่า Supabase");
       return;
     }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setError('เชื่อมต่อไม่สำเร็จ');
+      setError("เชื่อมต่อไม่สำเร็จ");
       return;
     }
     setLoading(true);
@@ -77,7 +77,7 @@ export function AdminLoginForm() {
       return;
     }
     setAdminAuthHint();
-    router.replace('/admin');
+    router.replace("/admin");
     router.refresh();
   };
 
@@ -108,7 +108,7 @@ export function AdminLoginForm() {
       >
         <div className="text-center mb-10">
           <h1 className="font-headline text-3xl sm:text-[2rem] font-semibold text-white tracking-tight">
-            Majestic Reserve
+            Sunshine Hotel
           </h1>
           <p className="mt-2 font-label text-[11px] uppercase tracking-[0.35em] text-primary-fixed/90">
             Admin
@@ -116,7 +116,7 @@ export function AdminLoginForm() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.97] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.45)] backdrop-blur-sm px-8 py-9 sm:px-10 sm:py-10">
-          {reason === 'config' && (
+          {reason === "config" && (
             <div
               className="mb-6 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-center text-xs text-amber-950"
               role="alert"
@@ -173,7 +173,7 @@ export function AdminLoginForm() {
                 <input
                   id="admin-password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={password}
@@ -185,7 +185,7 @@ export function AdminLoginForm() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-outline hover:text-on-surface hover:bg-surface-container-high/80 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="w-[18px] h-[18px]" />
@@ -197,7 +197,10 @@ export function AdminLoginForm() {
             </motion.div>
 
             {error && (
-              <p className="text-sm text-error font-body text-center" role="alert">
+              <p
+                className="text-sm text-error font-body text-center"
+                role="alert"
+              >
                 {error}
               </p>
             )}
@@ -217,7 +220,7 @@ export function AdminLoginForm() {
                 {loading ? (
                   <span className="h-4 w-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
                 ) : (
-                  'Sign in'
+                  "Sign in"
                 )}
               </MotionButton>
             </motion.div>

@@ -1,22 +1,19 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { useAppDialog } from '@/components/providers/app-dialog-provider';
-import { MotionButton } from '@/components/ui/motion-button';
-import {
-  completeBookingPayment,
-  fetchBookingById,
-} from '@/lib/api/bookings';
-import type { BookingDto } from '@/lib/types/booking';
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Navbar } from "@/modules/public/components/Navbar";
+import { Footer } from "@/modules/public/components/Footer";
+import { useAppDialog } from "@/components/providers/app-dialog-provider";
+import { MotionButton } from "@/components/ui/motion-button";
+import { completeBookingPayment, fetchBookingById } from "@/lib/api/bookings";
+import type { BookingDto } from "@/lib/types/booking";
 import {
   PAYMENT_OPTIONS,
   type PaymentMethodCode,
-} from '@/lib/constants/payment-methods';
+} from "@/lib/constants/payment-methods";
 
-const GUEST_EMAIL_KEY = 'booking_guest_email';
+const GUEST_EMAIL_KEY = "booking_guest_email";
 
 export default function PaymentPage() {
   const { alert, confirm: confirmDialog } = useAppDialog();
@@ -26,8 +23,8 @@ export default function PaymentPage() {
 
   const [booking, setBooking] = useState<BookingDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodCode | ''>(
-    '',
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodCode | "">(
+    "",
   );
   const [payError, setPayError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
@@ -35,20 +32,20 @@ export default function PaymentPage() {
   const load = useCallback(async () => {
     const email = localStorage.getItem(GUEST_EMAIL_KEY);
     if (!email?.trim()) {
-      setLoadError('No guest email on this device. Start again from Rooms.');
+      setLoadError("No guest email on this device. Start again from Rooms.");
       return;
     }
     setLoadError(null);
     try {
       const b = await fetchBookingById(bookingId, email);
       setBooking(b);
-      if (b.paymentStatus === 'PAID') {
-        setSelectedMethod((b.paymentMethod as PaymentMethodCode) || '');
+      if (b.paymentStatus === "PAID") {
+        setSelectedMethod((b.paymentMethod as PaymentMethodCode) || "");
       }
     } catch (e) {
       setBooking(null);
       setLoadError(
-        e instanceof Error ? e.message : 'Could not load this booking.',
+        e instanceof Error ? e.message : "Could not load this booking.",
       );
     }
   }, [bookingId]);
@@ -62,10 +59,10 @@ export default function PaymentPage() {
     const email = localStorage.getItem(GUEST_EMAIL_KEY);
     if (!email?.trim() || !selectedMethod || !booking) return;
     const ok = await confirmDialog({
-      title: 'ยืนยันการชำระเงิน',
+      title: "ยืนยันการชำระเงิน",
       message: `ชำระ $${booking.totalAmount.toFixed(2)} ด้วยวิธีที่เลือก?`,
-      confirmLabel: 'ชำระเงิน',
-      cancelLabel: 'ยกเลิก',
+      confirmLabel: "ชำระเงิน",
+      cancelLabel: "ยกเลิก",
     });
     if (!ok) return;
     setPayError(null);
@@ -76,11 +73,11 @@ export default function PaymentPage() {
         guestEmail: email.trim(),
       });
       await load();
-      await alert({ title: 'สำเร็จ', message: 'บันทึกการชำระเงินแล้ว' });
-      router.push('/bookings');
+      await alert({ title: "สำเร็จ", message: "บันทึกการชำระเงินแล้ว" });
+      router.push("/bookings");
     } catch (err) {
       setPayError(
-        err instanceof Error ? err.message : 'Payment could not be processed.',
+        err instanceof Error ? err.message : "Payment could not be processed.",
       );
     } finally {
       setPaying(false);
@@ -112,7 +109,7 @@ export default function PaymentPage() {
               {booking.suite.roomNumber}
             </p>
             <p className="font-body text-sm text-on-surface-variant mt-4">
-              {new Date(booking.checkInDate).toLocaleDateString()} —{' '}
+              {new Date(booking.checkInDate).toLocaleDateString()} —{" "}
               {new Date(booking.checkOutDate).toLocaleDateString()}
             </p>
             <p className="font-headline text-2xl text-primary mt-4">
@@ -124,14 +121,14 @@ export default function PaymentPage() {
           </div>
         )}
 
-        {booking && booking.paymentStatus === 'PAID' && (
+        {booking && booking.paymentStatus === "PAID" && (
           <p className="font-body text-green-700 dark:text-green-400 mb-6">
             This reservation is already paid. You can review it under My
             Bookings.
           </p>
         )}
 
-        {booking && booking.paymentStatus !== 'PAID' && (
+        {booking && booking.paymentStatus !== "PAID" && (
           <form onSubmit={handlePay} className="space-y-6">
             <fieldset>
               <legend className="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 block">
@@ -143,8 +140,8 @@ export default function PaymentPage() {
                     key={opt.code}
                     className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
                       selectedMethod === opt.code
-                        ? 'border-primary bg-primary/5'
-                        : 'border-outline-variant/30 hover:border-primary/50'
+                        ? "border-primary bg-primary/5"
+                        : "border-outline-variant/30 hover:border-primary/50"
                     }`}
                   >
                     <input
@@ -173,13 +170,13 @@ export default function PaymentPage() {
                 disabled={!selectedMethod || paying}
                 className="flex-1 bloom-effect py-3"
               >
-                {paying ? 'Processing…' : 'Confirm payment'}
+                {paying ? "Processing…" : "Confirm payment"}
               </MotionButton>
               <MotionButton
                 type="button"
                 variant="outline"
                 size="lg"
-                onClick={() => router.push('/bookings')}
+                onClick={() => router.push("/bookings")}
                 className="px-6 py-3"
               >
                 Pay later

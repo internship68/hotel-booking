@@ -1,72 +1,101 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { MotionButton } from '@/components/ui/motion-button';
-import { MotionModal } from '@/components/ui/motion-modal';
-import { Ruler, X } from 'lucide-react';
-import { fetchSuites } from '@/lib/api/suites';
-import { createBooking } from '@/lib/api/bookings';
-import type { SuiteDto } from '@/lib/types/suite';
-import { getSuiteImageFallbackUrl } from '@/lib/env/public-env';
-import { getSuiteCategoryLabel } from '@/lib/domain/suite-category';
+import Image from "next/image";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Navbar } from "@/modules/public/components/Navbar";
+import { Footer } from "@/modules/public/components/Footer";
+import { MotionButton } from "@/components/ui/motion-button";
+import { MotionModal } from "@/components/ui/motion-modal";
+import { Ruler, X } from "lucide-react";
+import { fetchAvailableSuites, fetchSuites } from "@/lib/api/suites";
+import { createBooking } from "@/lib/api/bookings";
+import type { SuiteDto } from "@/lib/types/suite";
+import { getSuiteImageFallbackUrl } from "@/lib/env/public-env";
+import { getSuiteCategoryLabel } from "@/lib/domain/suite-category";
 import {
   getSuiteStatusLabel,
   isMaintenanceStatus,
   isSuiteStatus,
-} from '@/lib/domain/suite-status';
+} from "@/lib/domain/suite-status";
 
-const TABS = ['All', 'Suites', 'Penthouses', 'Villas'] as const;
-type Tab = (typeof TABS)[number];
-
-const GUEST_EMAIL_KEY = 'booking_guest_email';
+const GUEST_EMAIL_KEY = "booking_guest_email";
+const ROOM_CATEGORIES = ["SUITE", "PENTHOUSE", "VILLA"] as const;
+type RoomCategory = (typeof ROOM_CATEGORIES)[number];
 
 function suiteStatusLabel(status: string): string {
   return isSuiteStatus(status) ? getSuiteStatusLabel(status) : status;
 }
 
-function suiteMatchesTab(suite: SuiteDto, tab: Tab): boolean {
-  if (tab === 'All') return true;
-  const cat = (suite.category ?? 'SUITE').toUpperCase();
-  if (tab === 'Penthouses') return cat === 'PENTHOUSE';
-  if (tab === 'Villas') return cat === 'VILLA';
-  return cat === 'SUITE';
+function suiteMatchesCategory(
+  suite: SuiteDto,
+  category: RoomCategory,
+): boolean {
+  return (suite.category ?? "SUITE").toUpperCase() === category;
+}
+
+function categoryFromQuery(category: string | null): RoomCategory {
+  const c = category?.toUpperCase();
+  if (c === "PENTHOUSE") return "PENTHOUSE";
+  if (c === "VILLA") return "VILLA";
+  return "SUITE";
+}
+
+function categoryTitle(category: RoomCategory): string {
+  if (category === "PENTHOUSE") return "Penthouses";
+  if (category === "VILLA") return "Villas";
+  return "Suites";
 }
 
 export default function RoomsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const imageFallback = useMemo(() => getSuiteImageFallbackUrl(), []);
+  const checkInDateQuery = searchParams.get("checkInDate");
+  const checkOutDateQuery = searchParams.get("checkOutDate");
+  const hasDateSearch = Boolean(checkInDateQuery && checkOutDateQuery);
   const [suites, setSuites] = useState<SuiteDto[]>([]);
   const [listLoading, setListLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('All');
   const [selectedSuite, setSelectedSuite] = useState<SuiteDto | null>(null);
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const loadSuites = useCallback(async () => {
     setListLoading(true);
     try {
-      const data = await fetchSuites();
+      const data = hasDateSearch
+        ? await fetchAvailableSuites({
+            checkInDate: checkInDateQuery as string,
+            checkOutDate: checkOutDateQuery as string,
+          })
+        : await fetchSuites();
       setSuites(data);
     } catch {
       setSuites([]);
     } finally {
       setListLoading(false);
     }
-  }, []);
+  }, [checkInDateQuery, checkOutDateQuery, hasDateSearch]);
 
   useEffect(() => {
     loadSuites();
   }, [loadSuites]);
+
+  useEffect(() => {
+    const requestedSuiteId = searchParams.get("suite");
+    if (!requestedSuiteId || suites.length === 0 || selectedSuite) return;
+    const match = suites.find((suite) => suite.id === requestedSuiteId);
+    if (match && match.status === "AVAILABLE") {
+      openBooking(match);
+    }
+  }, [searchParams, suites, selectedSuite]);
 
   useEffect(() => {
     const saved = localStorage.getItem(GUEST_EMAIL_KEY);
@@ -76,8 +105,8 @@ export default function RoomsPage() {
   const openBooking = (suite: SuiteDto) => {
     setSelectedSuite(suite);
     setFormError(null);
-    setCheckIn('');
-    setCheckOut('');
+    setCheckIn("");
+    setCheckOut("");
     const saved = localStorage.getItem(GUEST_EMAIL_KEY);
     if (saved) setEmail(saved);
   };
@@ -88,7 +117,11 @@ export default function RoomsPage() {
     setSubmitting(false);
   };
 
-  const filtered = suites.filter((s) => suiteMatchesTab(s, activeTab));
+  const activeCategory = categoryFromQuery(searchParams.get("category"));
+  const activeTitle = categoryTitle(activeCategory);
+  const filtered = suites.filter((s) =>
+    suiteMatchesCategory(s, activeCategory),
+  );
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +145,7 @@ export default function RoomsPage() {
       router.push(`/payment/${booking.id}`);
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : 'Booking could not be completed.';
+        err instanceof Error ? err.message : "Booking could not be completed.";
       setFormError(msg);
     } finally {
       setSubmitting(false);
@@ -129,31 +162,13 @@ export default function RoomsPage() {
             The Catalog
           </span>
           <h1 className="font-headline text-5xl lg:text-7xl font-bold text-on-background leading-tight mb-6">
-            Refined Accommodations
+            {`${activeTitle} Collection`}
           </h1>
           <p className="font-headline italic text-xl text-on-surface-variant leading-relaxed max-w-2xl">
-            Live availability from our reservation system. Select a suite and
-            submit a request with your stay dates.
+            {hasDateSearch
+              ? `Showing ${filtered.length} available rooms in ${activeTitle} for ${checkInDateQuery} to ${checkOutDateQuery}.`
+              : `Showing ${filtered.length} rooms in ${activeTitle}. Pick any room card to see full details and booking options.`}
           </p>
-        </section>
-
-        <section className="max-w-7xl mx-auto px-6 md:px-12 mb-12">
-          <div className="flex items-center gap-6 md:gap-12 border-b border-outline-variant/20 pb-6 overflow-x-auto no-scrollbar">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`font-label text-sm font-semibold uppercase tracking-widest pb-6 -mb-[26px] whitespace-nowrap transition-colors ${
-                  activeTab === tab
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-on-surface-variant hover:text-primary'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
         </section>
 
         <section className="max-w-7xl mx-auto px-6 md:px-12 space-y-16">
@@ -161,7 +176,7 @@ export default function RoomsPage() {
             <p className="font-body text-on-surface-variant">Loading suites…</p>
           ) : filtered.length === 0 ? (
             <p className="font-body text-on-surface-variant">
-              No suites match this filter.
+              {`No rooms found for ${activeTitle} yet.`}
             </p>
           ) : (
             filtered.map((suite) => (
@@ -175,7 +190,7 @@ export default function RoomsPage() {
                     alt={suite.name}
                     fill
                     className={`object-cover ${
-                      isMaintenanceStatus(suite.status) ? 'grayscale' : ''
+                      isMaintenanceStatus(suite.status) ? "grayscale" : ""
                     }`}
                     referrerPolicy="no-referrer"
                   />
@@ -186,16 +201,16 @@ export default function RoomsPage() {
                       {suite.roomNumber}
                     </span>
                     <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
-                      {getSuiteCategoryLabel(suite.category ?? 'SUITE')}
+                      {getSuiteCategoryLabel(suite.category ?? "SUITE")}
                     </span>
                     <div className="h-[1px] flex-1 bg-outline-variant" />
                     <span
                       className={`font-label text-[10px] font-bold uppercase tracking-widest ${
                         isMaintenanceStatus(suite.status)
-                          ? 'text-error'
-                          : suite.status === 'AVAILABLE'
-                            ? 'text-green-700'
-                            : 'text-amber-800'
+                          ? "text-error"
+                          : suite.status === "AVAILABLE"
+                            ? "text-green-700"
+                            : "text-amber-800"
                       }`}
                     >
                       {suiteStatusLabel(suite.status)}
@@ -213,21 +228,29 @@ export default function RoomsPage() {
                       From ${suite.pricePerNight} / night
                     </span>
                   </div>
-                  <MotionButton
-                    type="button"
-                    variant="primary"
-                    size="xl"
-                    disabled={
-                      isMaintenanceStatus(suite.status) ||
-                      suite.status !== 'AVAILABLE'
-                    }
-                    onClick={() => openBooking(suite)}
-                    className="w-full md:w-auto px-10 bloom-effect"
-                  >
-                    {suite.status === 'AVAILABLE'
-                      ? 'Book experience'
-                      : 'Unavailable'}
-                  </MotionButton>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <MotionButton
+                      type="button"
+                      variant="primary"
+                      size="xl"
+                      disabled={
+                        isMaintenanceStatus(suite.status) ||
+                        suite.status !== "AVAILABLE"
+                      }
+                      onClick={() => openBooking(suite)}
+                      className="w-full md:w-auto px-10 bloom-effect"
+                    >
+                      {suite.status === "AVAILABLE"
+                        ? "Book experience"
+                        : "Unavailable"}
+                    </MotionButton>
+                    <Link
+                      href={`/rooms/${suite.id}`}
+                      className="font-label text-xs uppercase tracking-widest text-primary underline underline-offset-4"
+                    >
+                      View details
+                    </Link>
+                  </div>
                 </div>
               </article>
             ))
@@ -346,7 +369,7 @@ export default function RoomsPage() {
                 disabled={submitting}
                 className="w-full py-3 bloom-effect"
               >
-                {submitting ? 'Submitting…' : 'Submit request'}
+                {submitting ? "Submitting…" : "Submit request"}
               </MotionButton>
             </form>
           </>

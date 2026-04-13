@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { DEFAULT_SUITE_CATEGORY } from './constants/suite-category';
-import { DEFAULT_SUITE_STATUS } from './constants/suite-status';
-import { SUITE_NOT_FOUND_MESSAGE } from './constants/suite-errors';
-import { CreateSuiteDto } from './dto/create-suite.dto';
-import { SuiteResponseMapper } from './mappers/suite-response.mapper';
-import { SuiteRepository } from './suite.repository';
-import type { SuiteResponse } from './types/suite-response.type';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { DEFAULT_SUITE_CATEGORY } from "./constants/suite-category";
+import { DEFAULT_SUITE_STATUS } from "./constants/suite-status";
+import { SUITE_NOT_FOUND_MESSAGE } from "./constants/suite-errors";
+import { CreateSuiteDto } from "./dto/create-suite.dto";
+import { FindAvailableSuitesDto } from "./dto/find-available-suites.dto";
+import { SuiteResponseMapper } from "./mappers/suite-response.mapper";
+import { SuiteRepository } from "./suite.repository";
+import type { SuiteResponse } from "./types/suite-response.type";
 
 @Injectable()
 export class SuiteService {
@@ -18,6 +23,37 @@ export class SuiteService {
     await this.suiteRepository.reconcileAllSuiteStatuses();
     const rows = await this.suiteRepository.findAll();
     return this.suiteResponseMapper.toResponseList(rows);
+  }
+
+  async findAvailable(dto: FindAvailableSuitesDto): Promise<SuiteResponse[]> {
+    const checkInDate = new Date(dto.checkInDate);
+    const checkOutDate = new Date(dto.checkOutDate);
+    if (
+      Number.isNaN(checkInDate.getTime()) ||
+      Number.isNaN(checkOutDate.getTime())
+    ) {
+      throw new BadRequestException("Invalid check-in or check-out date");
+    }
+    if (checkOutDate <= checkInDate) {
+      throw new BadRequestException(
+        "Check-out date must be after check-in date",
+      );
+    }
+    const rows = await this.suiteRepository.findAvailableInRange(
+      checkInDate,
+      checkOutDate,
+      dto.category?.toUpperCase(),
+    );
+    return this.suiteResponseMapper.toResponseList(rows);
+  }
+
+  async findOne(id: string): Promise<SuiteResponse> {
+    await this.reconcileSuite(id);
+    const row = await this.suiteRepository.findById(id);
+    if (!row) {
+      throw new NotFoundException(SUITE_NOT_FOUND_MESSAGE);
+    }
+    return this.suiteResponseMapper.toResponse(row);
   }
 
   async reconcileSuite(suiteId: string): Promise<void> {

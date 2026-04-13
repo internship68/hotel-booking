@@ -1,5 +1,5 @@
-import { Suspense } from 'react';
-import { AdminLoginForm } from './login-form';
+import { Suspense } from "react";
+import { AdminLoginForm } from "@/modules/admin/components/AdminLoginForm";
 
 function LoginFallback() {
   return (

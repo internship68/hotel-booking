@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -46,16 +47,16 @@ model Suite {
 }
 
 model Booking {
-  id              String        @id @default(uuid())
-  guestId         String
-  suiteId         String
-  checkInDate     DateTime
-  checkOutDate    DateTime
-  totalAmount     Decimal
-  status          String        @default("PENDING")
-  paymentMethod   String?
-  paymentStatus   String        @default("UNPAID")
-  checkedInAt     DateTime?
+  id            String        @id @default(uuid())
+  guestId       String
+  suiteId       String
+  checkInDate   DateTime
+  checkOutDate  DateTime
+  totalAmount   Decimal
+  status        String        @default("PENDING")
+  paymentMethod String?
+  paymentStatus String        @default("UNPAID")
+  checkedInAt   DateTime?
   guest         Guest         @relation(fields: [guestId], references: [id])
   suite         Suite         @relation(fields: [suiteId], references: [id])
   transactions  Transaction[]
