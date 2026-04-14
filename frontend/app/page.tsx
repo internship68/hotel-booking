@@ -322,7 +322,7 @@ export default function Home() {
                           className="object-cover transition-transform duration-700 group-hover:scale-110"
                           referrerPolicy="no-referrer"
                         />
-                        {item.badge ? (
+                        {"badge" in item && item.badge ? (
                           <div className="absolute top-6 right-6 bg-white/90 backdrop-blur px-4 py-2 font-label text-[10px] font-bold uppercase tracking-widest">
                             {item.badge}
                           </div>

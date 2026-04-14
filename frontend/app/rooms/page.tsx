@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Navbar } from "@/modules/public/components/Navbar";
 import { Footer } from "@/modules/public/components/Footer";
@@ -48,7 +48,7 @@ function categoryTitle(category: RoomCategory): string {
   return "Suites";
 }
 
-export default function RoomsPage() {
+function RoomsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const imageFallback = useMemo(() => getSuiteImageFallbackUrl(), []);
@@ -378,5 +378,23 @@ export default function RoomsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function RoomsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col bg-background">
+          <Navbar />
+          <main className="flex-grow pt-32 pb-24 px-6 md:px-12">
+            <p className="font-body text-on-surface-variant">Loading…</p>
+          </main>
+          <Footer />
+        </div>
+      }
+    >
+      <RoomsPageContent />
+    </Suspense>
   );
 }
