@@ -72,6 +72,7 @@ npm run db:seed
 
 - Email: `demo@sunshine.local`
 - Password: `demo1234`
+- API เติมข้อมูลเดโม่อัตโนมัติเมื่อ DB ว่าง (`DEMO_AUTO_SEED=true` โดยปริยาย)
 
 ## หมายเหตุ
 
