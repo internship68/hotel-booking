@@ -1,21 +1,18 @@
-import { getApiBaseUrl } from '@/lib/env/public-env';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { getApiBaseUrl, isDemoModeEnabled } from "@/lib/env/public-env";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
 export function buildApiUrl(path: string): string {
   const base = getApiBaseUrl();
-  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${base}${normalized}`;
 }
 
-function parseApiErrorBody(
-  text: string,
-  fallback: string,
-): string {
+function parseApiErrorBody(text: string, fallback: string): string {
   if (!text.trim()) return fallback;
   try {
     const j = JSON.parse(text) as { message?: string | string[] };
-    if (typeof j.message === 'string') return j.message;
-    if (Array.isArray(j.message)) return j.message.join(', ');
+    if (typeof j.message === "string") return j.message;
+    if (Array.isArray(j.message)) return j.message.join(", ");
   } catch {
     return text.length > 200 ? `${text.slice(0, 200)}…` : text;
   }
@@ -28,7 +25,7 @@ export async function apiRequestJson<T>(
   init?: RequestInit,
 ): Promise<T> {
   const res = await fetch(buildApiUrl(path), {
-    cache: 'no-store',
+    cache: "no-store",
     ...init,
   });
   const text = await res.text();
@@ -47,12 +44,15 @@ export async function apiRequestJsonWithAuth<T>(
   errorMessage: string,
   init?: RequestInit,
 ): Promise<T> {
+  if (isDemoModeEnabled()) {
+    return apiRequestJson<T>(path, errorMessage, init);
+  }
   const headers = new Headers(init?.headers);
   const supabase = getSupabaseBrowserClient();
   if (supabase) {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    if (token) headers.set('Authorization', `Bearer ${token}`);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
   }
   return apiRequestJson<T>(path, errorMessage, { ...init, headers });
 }

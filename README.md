@@ -15,12 +15,12 @@
 └── .vscode/           # การตั้งค่าโปรแกรมแก้ไข (ถ้ามี)
 ```
 
-| รายการที่ราก | บทบาท |
-|-------------|--------|
-| `package.json` | ประกาศ `workspaces`: `frontend`, `backend` และคำสั่งเช่น `npm run dev`, `npm run start:dev` |
-| `package-lock.json` | ล็อกเวอร์ชันแพ็กเกจของ workspace ทั้งก้อน |
-| `.env.example` | เอกสารอ้างอิง env — ค่าจริงแยกไว้ใน `backend/.env` และ `frontend/.env.local` |
-| `.gitignore` | กฎไม่ commit เช่น `node_modules`, `.env` |
+| รายการที่ราก        | บทบาท                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `package.json`      | ประกาศ `workspaces`: `frontend`, `backend` และคำสั่งเช่น `npm run dev`, `npm run start:dev` |
+| `package-lock.json` | ล็อกเวอร์ชันแพ็กเกจของ workspace ทั้งก้อน                                                   |
+| `.env.example`      | เอกสารอ้างอิง env — ค่าจริงแยกไว้ใน `backend/.env` และ `frontend/.env.local`                |
+| `.gitignore`        | กฎไม่ commit เช่น `node_modules`, `.env`                                                    |
 
 ## ความต้องการของระบบ
 
@@ -57,6 +57,22 @@ npm run db:push
 npm run db:seed
 ```
 
+โหมดเดโม่ (ล็อกอินแอดมิน + ข้อมูลตัวอย่าง):
+
+1. เปิด `NEXT_PUBLIC_DEMO_MODE=true` ใน `frontend/.env.local`
+2. (ทางเลือก) ปรับ `NEXT_PUBLIC_DEMO_ADMIN_*` ตามต้องการ
+3. เติมข้อมูลเดโมเข้าฐานข้อมูล:
+
+```bash
+npm run db:push
+npm run db:seed
+```
+
+ค่าล็อกอินเดโม่เริ่มต้น:
+
+- Email: `demo@sunshine.local`
+- Password: `demo1234`
+
 ## หมายเหตุ
 
 เปิดโฟลเดอร์โปรเจกต์ที่มี `package.json`, `backend`, `frontend` อยู่ **ชั้นเดียวกัน** เป็น workspace ใน IDE — ไม่ควรมีโฟลเดอร์ซ้อนชื่อซ้ำอีกชั้น
@@ -78,15 +94,15 @@ npm run build -w frontend
 
 ### ตัวแปรสภาพแวดล้อม (สรุป)
 
-| ที่ | ตัวแปร | บังคับ? | หมายเหตุ |
-|-----|--------|---------|----------|
-| Backend | `DATABASE_URL` | ใช่ | PostgreSQL สำหรับ Prisma |
-| Backend | `CORS_ORIGIN` | แนะนำ | คั่นด้วย comma ได้หลาย origin (เช่น Vercel preview + โดเมนจริง) |
-| Backend | `PORT` | ไม่ | default `3001` |
-| Backend | `SUPABASE_*` | ตามฟีเจอร์ | `SupabaseService` พร้อมใช้; ถ้ายังไม่เรียกจาก controller จะไม่พังตอนบูต |
-| Frontend | `NEXT_PUBLIC_API_URL` | ใช่ | URL ของ API ฝั่ง backend (ไม่มี `/` ท้าย) |
-| Frontend | `NEXT_PUBLIC_SUPABASE_*` | สำหรับแอดมิน | ถ้าไม่ตั้ง แอดมินล็อกอินไม่ได้ แต่หน้า guest ยังโหลดได้ |
-| Frontend | `NEXT_PUBLIC_SUITE_IMAGE_FALLBACK_URL` | ไม่ | ถ้าไม่ตั้ง ใช้รูป default (picsum) ตาม `lib/env/public-env.ts` |
+| ที่      | ตัวแปร                                 | บังคับ?      | หมายเหตุ                                                                |
+| -------- | -------------------------------------- | ------------ | ----------------------------------------------------------------------- |
+| Backend  | `DATABASE_URL`                         | ใช่          | PostgreSQL สำหรับ Prisma                                                |
+| Backend  | `CORS_ORIGIN`                          | แนะนำ        | คั่นด้วย comma ได้หลาย origin (เช่น Vercel preview + โดเมนจริง)         |
+| Backend  | `PORT`                                 | ไม่          | default `3001`                                                          |
+| Backend  | `SUPABASE_*`                           | ตามฟีเจอร์   | `SupabaseService` พร้อมใช้; ถ้ายังไม่เรียกจาก controller จะไม่พังตอนบูต |
+| Frontend | `NEXT_PUBLIC_API_URL`                  | ใช่          | URL ของ API ฝั่ง backend (ไม่มี `/` ท้าย)                               |
+| Frontend | `NEXT_PUBLIC_SUPABASE_*`               | สำหรับแอดมิน | ถ้าไม่ตั้ง แอดมินล็อกอินไม่ได้ แต่หน้า guest ยังโหลดได้                 |
+| Frontend | `NEXT_PUBLIC_SUITE_IMAGE_FALLBACK_URL` | ไม่          | ถ้าไม่ตั้ง ใช้รูป default (picsum) ตาม `lib/env/public-env.ts`          |
 
 รายละเอียดและตัวอย่างค่า: ดู `.env.example` ที่รากโปรเจกต์, `backend/.env.example`, `frontend/.env.example`
 
@@ -94,7 +110,7 @@ npm run build -w frontend
 
 ### ข้อจำกัดด้านความปลอดภัย (ควรทราบก่อนเปิด public API)
 
-- ฝั่ง **API ยังไม่มีการตรวจ JWT / Bearer** ใน controllers — ฝั่ง frontend ส่ง `Authorization` จาก Supabase แล้ว แต่ **backend ยังไม่ verify token** ดังนั้น route ที่ละเอียดอ่อน (เช่น `booking/admin/*`, `admin/*`) ในทางทฤษฎีถูกเรียกได้โดยไม่ล็อกอิน หากรู้ URL  
+- ฝั่ง **API ยังไม่มีการตรวจ JWT / Bearer** ใน controllers — ฝั่ง frontend ส่ง `Authorization` จาก Supabase แล้ว แต่ **backend ยังไม่ verify token** ดังนั้น route ที่ละเอียดอ่อน (เช่น `booking/admin/*`, `admin/*`) ในทางทฤษฎีถูกเรียกได้โดยไม่ล็อกอิน หากรู้ URL
 - **แนะนำก่อน production จริง:** เพิ่ม Guard ตรวจ Supabase JWT กับ route แอดมิน, จำกัด rate, และ/หรือวาง API หลัง private network / API gateway
 
 ### สิ่งอื่นที่ควรเช็ก

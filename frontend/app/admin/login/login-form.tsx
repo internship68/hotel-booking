@@ -7,6 +7,17 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { setAdminAuthHint } from "@/lib/admin-session-hint";
 import {
+  clearDemoAdminSession,
+  readDemoAdminSession,
+  writeDemoAdminSession,
+} from "@/lib/demo-auth";
+import {
+  getDemoAdminEmail,
+  getDemoAdminName,
+  getDemoAdminPassword,
+  isDemoModeEnabled,
+} from "@/lib/env/public-env";
+import {
   getSupabaseBrowserClient,
   isSupabaseBrowserConfigured,
 } from "@/lib/supabase/browser-client";
@@ -15,6 +26,10 @@ import { MotionButton } from "@/components/ui/motion-button";
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
 export function AdminLoginForm() {
+  const demoMode = isDemoModeEnabled();
+  const demoEmail = getDemoAdminEmail();
+  const demoPassword = getDemoAdminPassword();
+  const demoName = getDemoAdminName();
   const router = useRouter();
   const routerRef = useRef(router);
   useEffect(() => {
@@ -30,11 +45,22 @@ export function AdminLoginForm() {
   const [loading, setLoading] = useState(false);
   /** false = ไม่ต้องรอ session (ไม่ได้ตั้งค่า / ไม่มี client); true = กำลังรอ getSession */
   const [checkingSession, setCheckingSession] = useState(() => {
+    if (demoMode) return false;
     if (!isSupabaseBrowserConfigured()) return false;
     return getSupabaseBrowserClient() != null;
   });
 
   useEffect(() => {
+    if (demoMode) {
+      const activeDemoSession = readDemoAdminSession();
+      if (activeDemoSession) {
+        setAdminAuthHint();
+        routerRef.current.replace("/admin");
+      } else {
+        setCheckingSession(false);
+      }
+      return;
+    }
     if (!isSupabaseBrowserConfigured()) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -52,11 +78,27 @@ export function AdminLoginForm() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [demoMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (demoMode) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail !== demoEmail || password !== demoPassword) {
+        setError("อีเมลหรือรหัสผ่านเดโมไม่ถูกต้อง");
+        return;
+      }
+      writeDemoAdminSession({
+        email: demoEmail,
+        name: demoName,
+        role: "ADMIN",
+      });
+      setAdminAuthHint();
+      router.replace("/admin");
+      router.refresh();
+      return;
+    }
     if (!isSupabaseBrowserConfigured()) {
       setError("ยังไม่ได้ตั้งค่า Supabase");
       return;
@@ -124,6 +166,16 @@ export function AdminLoginForm() {
               ยังไม่ได้ตั้งค่า Supabase
             </div>
           )}
+          {demoMode && (
+            <div
+              className="mb-6 rounded-xl border border-blue-200/80 bg-blue-50/90 px-3 py-2.5 text-xs text-blue-900 space-y-1"
+              role="status"
+            >
+              <p className="font-semibold">Demo mode enabled</p>
+              <p>Email: {demoEmail}</p>
+              <p>Password: {demoPassword}</p>
+            </div>
+          )}
 
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
             <motion.div
@@ -152,6 +204,7 @@ export function AdminLoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
+                  autoFocus
                   className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-on-surface text-[15px] placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
                 />
               </div>
@@ -203,6 +256,20 @@ export function AdminLoginForm() {
               >
                 {error}
               </p>
+            )}
+
+            {demoMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail(demoEmail);
+                  setPassword(demoPassword);
+                  clearDemoAdminSession();
+                }}
+                className="w-full text-xs text-primary font-label uppercase tracking-widest hover:underline"
+              >
+                Use demo credentials
+              </button>
             )}
 
             <motion.div

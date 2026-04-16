@@ -31,6 +31,8 @@ import {
   readAdminAuthHint,
   setAdminAuthHint,
 } from "@/lib/admin-session-hint";
+import { clearDemoAdminSession, readDemoAdminSession } from "@/lib/demo-auth";
+import { isDemoModeEnabled } from "@/lib/env/public-env";
 
 const NOTIF_READ_KEY = "majestic_admin_notif_read_at";
 
@@ -70,6 +72,8 @@ function displayNameFromSession(session: Session | null): string | null {
 }
 
 export function AdminAppShell({ children }: { children: React.ReactNode }) {
+  const demoMode = isDemoModeEnabled();
+  const demoSession = readDemoAdminSession();
   const pathname = usePathname();
   const router = useRouter();
   const routerRef = useRef(router);
@@ -102,6 +106,18 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (demoMode) {
+      if (!demoSession) {
+        clearAdminAuthHint();
+        routerRef.current.replace("/admin/login");
+        return;
+      }
+      setAdminAuthHint();
+      Promise.resolve().then(() => {
+        setAuthVerified(true);
+      });
+      return;
+    }
     if (!isSupabaseBrowserConfigured()) {
       clearAdminAuthHint();
       routerRef.current.replace("/admin/login?reason=config");
@@ -149,7 +165,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [demoMode, demoSession]);
 
   useEffect(() => {
     if (!authVerified) return;
@@ -177,7 +193,11 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
     if (!ok) return;
     const supabase = getSupabaseBrowserClient();
     clearAdminAuthHint();
-    await supabase?.auth.signOut();
+    if (demoMode) {
+      clearDemoAdminSession();
+    } else {
+      await supabase?.auth.signOut();
+    }
     router.push("/admin/login");
     router.refresh();
   };
@@ -210,16 +230,19 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
 
   /** ชื่อในแถบหัว: มาจาก Supabase ก่อน — ไม่ดึงชื่อแอดมินคนอื่นจาก DB มาแสดง */
   const headerName =
+    (demoMode ? demoSession?.name : null) ??
     displayNameFromSession(session) ??
     session?.user?.email ??
     (profileMatchesStaff ? profile.name : null) ??
     "Signed in";
 
-  const headerRole = profileMatchesStaff
-    ? roleLabel(profile.role)
-    : sessionEmail
-      ? "Supabase"
-      : "—";
+  const headerRole = demoMode
+    ? (demoSession?.role ?? "Demo")
+    : profileMatchesStaff
+      ? roleLabel(profile.role)
+      : sessionEmail
+        ? "Supabase"
+        : "—";
 
   const showFullScreenGate = !authVerified && !sessionHint;
 
