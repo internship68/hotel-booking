@@ -26,7 +26,11 @@ import { MotionButton } from "@/components/ui/motion-button";
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
 export function AdminLoginForm() {
-  const demoMode = isDemoModeEnabled() || !isSupabaseBrowserConfigured();
+  const existingDemoSession = readDemoAdminSession();
+  const demoMode =
+    isDemoModeEnabled() ||
+    existingDemoSession != null ||
+    !isSupabaseBrowserConfigured();
   const demoEmail = getDemoAdminEmail();
   const demoPassword = getDemoAdminPassword();
   const demoName = getDemoAdminName();
@@ -52,12 +56,14 @@ export function AdminLoginForm() {
 
   useEffect(() => {
     if (demoMode) {
-      const activeDemoSession = readDemoAdminSession();
+      const activeDemoSession = existingDemoSession ?? readDemoAdminSession();
       if (activeDemoSession) {
         setAdminAuthHint();
         routerRef.current.replace("/admin");
       } else {
-        setCheckingSession(false);
+        Promise.resolve().then(() => {
+          setCheckingSession(false);
+        });
       }
       return;
     }
@@ -78,7 +84,7 @@ export function AdminLoginForm() {
     return () => {
       cancelled = true;
     };
-  }, [demoMode]);
+  }, [demoMode, existingDemoSession]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

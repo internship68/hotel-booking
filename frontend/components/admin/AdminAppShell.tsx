@@ -72,8 +72,8 @@ function displayNameFromSession(session: Session | null): string | null {
 }
 
 export function AdminAppShell({ children }: { children: React.ReactNode }) {
-  const demoMode = isDemoModeEnabled();
   const demoSession = readDemoAdminSession();
+  const demoMode = isDemoModeEnabled() || demoSession != null;
   const pathname = usePathname();
   const router = useRouter();
   const routerRef = useRef(router);
